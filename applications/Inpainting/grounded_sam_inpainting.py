@@ -19,7 +19,6 @@ import paddle
 import numpy as np
 import requests
 from paddlenlp.trainer import PdArgumentParser
-from PIL import Image
 
 import paddle
 import paddle.nn.functional as F
