@@ -86,11 +86,11 @@ class ConversationBot:
 
         if self.image_pil is None:
            warning_prompt = 'Please upload image'
-        if self.det_prompt is None or self.inpaint_prompt is None:
+        elif (self.det_prompt is None or self.inpaint_prompt is None) and text =="":
            warning_prompt = 'Please input prompt'
-        if warning_prompt is not None:
-            state = state + [(warning_prompt,"exp:Replace the dog with a cat")]
-
+        if warning_prompt is not None or text =="":
+            state = state + [("Please upload image", "or Please input prompt")]
+        
             return state,state
 
         prompt = "Given caption,extract the main object to be replaced and marked it as 'main_object', " + \
@@ -107,8 +107,10 @@ class ConversationBot:
         
         AI_prompt = "Received.  "
         state = state + [(text,AI_prompt)]
-        self.run()
-        state = state + [(f"![](/file={self.image_filename})","Done!")]
+        if self.run():
+            state = state + [(f"![](/file={self.image_filename})","Done!")]
+        else:
+            state = state + [("Please provide detailed prompts","exp: women is changed to a man who wear glasses and a Beret")]
 
         return state,state
     def run_image(self, image, state):
@@ -165,6 +167,10 @@ class ConversationBot:
             x0, y0, x1, y1 = box.numpy()
             x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
             boxes.append([x0, y0, x1, y1])
+
+        if len(boxes) == 0:
+            return False
+
         boxes = np.array(boxes)
         image_seg,prompt = self.sam_processor(image_pil,input_type="boxs",box=boxes,point_coords=None) 
         seg_masks = self.sam_model(img=image_seg,prompt=prompt)
@@ -182,6 +188,8 @@ class ConversationBot:
         image = self.sd_pipe(prompt=self.inpaint_prompt, image=image_pil, mask_image=mask_pil).images[0]
         image = image.resize(size)
         image.save(self.image_filename)
+
+        return True
     
     def clear(self):
         self.image_pil = None
