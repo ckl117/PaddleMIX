@@ -96,9 +96,14 @@ class AppTask(Task):
                     'trt_fp32': paddle.inference.PrecisionType.Float32,
                     'trt_fp16': paddle.inference.PrecisionType.Half
             }
+            self._config.set_cpu_math_library_num_threads(self._num_threads)
+            self._config.switch_use_feed_fetch_ops(False)
+            self._config.disable_glog_info()
+            self._config.enable_memory_optim()
+            self._config.enable_use_gpu(100, self.kwargs["device_id"])
             if self._infer_precision in precision_map.keys():
                 self._config.enable_tensorrt_engine(
-                    workspace_size=(1 << 30),
+                    workspace_size=(1 << 35),
                     max_batch_size=0,
                     min_subgraph_size=30,
                     precision_mode=precision_map[self._infer_precision],
@@ -113,7 +118,7 @@ class AppTask(Task):
                     self._config.enable_tuned_tensorrt_dynamic_shape(
                         self._tuned_trt_shape_file, True)
             
-            self._config.enable_use_gpu(100, self.kwargs["device_id"])
+            
             if self.task == 'openset_det_sam':
                 self._config.delete_pass("add_support_int8_pass")
                 self._config.delete_pass("trt_skip_layernorm_fuse_pass")
@@ -126,10 +131,7 @@ class AppTask(Task):
                     self._config.delete_pass("shuffle_channel_detect_pass")
                     self._config.exp_disable_tensorrt_ops(["concat_1.tmp_0", "set_value"])
  
-        self._config.set_cpu_math_library_num_threads(self._num_threads)
-        self._config.switch_use_feed_fetch_ops(False)
-        self._config.disable_glog_info()
-        self._config.enable_memory_optim()
+        
 
      
         self.predictor = paddle.inference.create_predictor(self._config)
